@@ -10,9 +10,9 @@ import java.math.BigDecimal;
  */
 public interface CustomerAccountServicePort {
 
-    void login(final String name);
+    BigDecimal login(final String name);
     void logout();
-    void deposit(final BigDecimal depositAmount);
+    BigDecimal deposit(final BigDecimal depositAmount);
 
     BigDecimal transfer(final String targetName, BigDecimal transferAmount);
 

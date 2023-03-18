@@ -23,10 +23,11 @@ public class AccountAggregate implements CustomerAccountServicePort {
     private CustomerAccount currentAccount;
 
     @Override
-    public void login(final String name) {
+    public BigDecimal login(final String name) {
         this.currentAccount = accountRepositoryPort.findCustomerByName(name)
                 .orElse(new CustomerAccount(name));
         accountRepositoryPort.save(this.currentAccount);
+        return this.currentAccount.getBalance();
     }
 
     @Override
@@ -35,12 +36,13 @@ public class AccountAggregate implements CustomerAccountServicePort {
     }
 
     @Override
-    public void deposit(final BigDecimal depositAmount) {
+    public BigDecimal deposit(final BigDecimal depositAmount) {
         if (this.currentAccount == null) {
             throw new DomainException("Deposit failed! Please login first!!");
         }
         this.currentAccount.setBalance(this.currentAccount.getBalance().add(depositAmount));
         accountRepositoryPort.save(this.currentAccount);
+        return this.currentAccount.getBalance();
     }
 
     @Override

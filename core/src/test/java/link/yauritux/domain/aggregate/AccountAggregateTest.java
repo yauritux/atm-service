@@ -50,23 +50,26 @@ class AccountAggregateTest {
     void loginWithEmptyCustomerAccountName() {
         when(accountRepositoryPort.findCustomerByName(anyString())).thenReturn(Optional.empty());
         verify(accountRepositoryPort, never()).save(any());
-        assertThrows(DomainException.class, () -> sut.login(" "));
+        Exception exception = assertThrows(DomainException.class, () -> sut.login(" "));
+        assertEquals("Customer account name cannot be empty!", exception.getMessage());
     }
 
     @Test
     void loginWithNonExistingAccount() {
         when(accountRepositoryPort.findCustomerByName("Uzumaki Naruto")).thenReturn(Optional.empty());
-        sut.login("Uzumaki Naruto");
+        var currentBalance = sut.login("Uzumaki Naruto");
         assertEquals(BigDecimal.ZERO, sut.getCurrentAccount().getBalance());
+        assertEquals(BigDecimal.ZERO, currentBalance);
         verify(accountRepositoryPort, atLeastOnce()).save(any(CustomerAccount.class));
     }
 
     @Test
     void loginWithExistingAccount() {
         when(accountRepositoryPort.findCustomerByName("Yauri Attamimi")).thenReturn(Optional.of(registeredCustomer));
-        sut.login("Yauri Attamimi");
+        var currentBalance = sut.login("Yauri Attamimi");
         assertEquals("Yauri Attamimi", sut.getCurrentAccount().getName());
         assertEquals(BigDecimal.valueOf(10_000_000), sut.getCurrentAccount().getBalance());
+        assertEquals(BigDecimal.valueOf(10_000_000), currentBalance);
         verify(accountRepositoryPort, atLeastOnce()).save(any(CustomerAccount.class));
     }
 
@@ -74,8 +77,9 @@ class AccountAggregateTest {
     void deposit10DollarToARegisteredAccount() {
         when(accountRepositoryPort.findCustomerByName("Yauri Attamimi")).thenReturn(Optional.of(registeredCustomer));
         sut.login("Yauri Attamimi");
-        sut.deposit(BigDecimal.TEN);
+        var lastBalance = sut.deposit(BigDecimal.TEN);
         assertEquals(BigDecimal.valueOf(10_000_010), registeredCustomer.getBalance());
+        assertEquals(registeredCustomer.getBalance(), lastBalance);
         verify(accountRepositoryPort, atLeastOnce()).save(any(CustomerAccount.class));
     }
 
