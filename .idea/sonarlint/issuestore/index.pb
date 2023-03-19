@@ -5,10 +5,6 @@ s
 Ccore/src/test/java/link/yauritux/domain/entity/DebtAccountTest.java,1/1/111f0f6fa52188c013ece941948c33d12e41f341
 
 Ocli-application/src/main/java/link/yauritux/exception/ApplicationException.java,3/1/31e9c52eca3eb39ea2830ef3b554bb557a70ce9d
-<
-core/pom.xml,7/6/76401d80919958a0380f14132adf8b8fc9c3d6ea
-G
-cli-application/pom.xml,a/d/adb98242d0d0c6af2185cdfb99a770d07518431e
 ˜
 hcli-application/src/test/java/link/yauritux/adapter/out/inmemory/InMemCustomerAccountRepositoryTest.java,8/b/8ba3efe7304cc911f48b6ea233b236c06d2bbfc3
 x
