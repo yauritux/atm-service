@@ -15,6 +15,8 @@ Later on, we can create another application layer (e.g., RESTful API, etc) using
 including persistence layer for various database available outside without fully interrupting our `core` domain 
 as long as we're following the same contract as defined within our `input port` and `output port`.
 
+![Code Architecture](./atm-service-codearch.png)
+
 ## Prerequisites
 
 - Docker
