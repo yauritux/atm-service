@@ -26,20 +26,10 @@ public class AppRunner {
             var commands = line.split(" ");
 
             if (commands[0].equalsIgnoreCase("login")) {
-                if (commands.length != 2) {
-                    System.err.println("Usage: login [name]");
-                    System.err.println("E.g. : login Alice");
-                    continue;
-                }
-                UserCliCommand.INSTANCE.login(commands[1]).forEach(System.out::println);
+                UserCliCommand.INSTANCE.login(commands.length == 2 ? commands[1] : null).forEach(System.out::println);
             } else if (commands[0].equalsIgnoreCase("deposit")) {
-                if (commands.length != 2) {
-                    System.err.println("Usage: deposit [amount]");
-                    System.err.println("E.g. : deposit 100");
-                    continue;
-                }
                 try {
-                    var depositAmount = new BigDecimal(commands[1]);
+                    var depositAmount = commands.length == 2 ? new BigDecimal(commands[1]) : null;
                     UserCliCommand.INSTANCE.deposit(depositAmount).forEach(System.out::println);
                 } catch (NumberFormatException e) {
                     System.err.println("Invalid deposit amount. Please provide number!");

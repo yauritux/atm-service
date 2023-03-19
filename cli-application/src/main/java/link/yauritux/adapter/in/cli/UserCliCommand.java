@@ -26,13 +26,14 @@ public class UserCliCommand {
      */
     public List<String> login(String name) {
         List<String> cmdResponse = new ArrayList<>();
-        try {
-            var currentBalance = accountAggregate.login(name);
-            cmdResponse.add(String.format("Hello, %s!%n", name));
-            cmdResponse.add(String.format("Your balance is $%s%n", currentBalance));
-        } catch (Exception e) {
-            cmdResponse.add(e.getMessage());
+        if (name == null || name.trim().equals("")) {
+            cmdResponse.add("Usage: login [name]");
+            cmdResponse.add("E.g. : login Alice");
+            return cmdResponse;
         }
+        var currentBalance = accountAggregate.login(name);
+        cmdResponse.add(String.format("Hello, %s!%n", name));
+        cmdResponse.add(String.format("Your balance is $%s%n", currentBalance));
         return cmdResponse;
     }
 
@@ -50,6 +51,11 @@ public class UserCliCommand {
 
     public List<String> deposit(BigDecimal amount) {
         List<String> cmdResponse = new ArrayList<>();
+        if (amount == null) {
+            cmdResponse.add("Usage: deposit [amount]");
+            cmdResponse.add("E.g. : deposit 100");
+            return cmdResponse;
+        }
         try {
             var response = accountAggregate.deposit(amount);
             response.getTransferList().forEach(t ->
