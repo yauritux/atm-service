@@ -1,9 +1,9 @@
 package link.yauritux.domain.aggregate;
 
 import link.yauritux.domain.entity.CustomerAccount;
-import link.yauritux.domain.entity.CustomerDebt;
-import link.yauritux.port.spi.CustomerAccountRepositoryPort;
-import link.yauritux.port.spi.CustomerDebtRepositoryPort;
+import link.yauritux.domain.entity.DebtAccount;
+import link.yauritux.port.out.CustomerAccountRepositoryPort;
+import link.yauritux.port.out.DebtAccountRepositoryPort;
 import link.yauritux.sharedkernel.exception.DomainException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,7 +34,7 @@ class AccountAggregateTest {
     private CustomerAccountRepositoryPort accountRepositoryPort;
 
     @Mock
-    private CustomerDebtRepositoryPort debtRepositoryPort;
+    private DebtAccountRepositoryPort debtRepositoryPort;
 
     private final CustomerAccount registeredCustomer =
             new CustomerAccount("Yauri Attamimi", BigDecimal.valueOf(10_000_000));
@@ -47,7 +48,7 @@ class AccountAggregateTest {
     }
 
     @Test
-    void loginWithEmptyCustomerAccountName() {
+    void login_withEmptyCustomerAccountName_shouldFailTheLoginAttempt() {
         when(accountRepositoryPort.findCustomerByName(anyString())).thenReturn(Optional.empty());
         verify(accountRepositoryPort, never()).save(any());
         Exception exception = assertThrows(DomainException.class, () -> sut.login(" "));
@@ -55,7 +56,7 @@ class AccountAggregateTest {
     }
 
     @Test
-    void loginWithNonExistingAccount() {
+    void login_withNonExistingAccount_willCreateANewAccount() {
         when(accountRepositoryPort.findCustomerByName("Uzumaki Naruto")).thenReturn(Optional.empty());
         var currentBalance = sut.login("Uzumaki Naruto");
         assertEquals(BigDecimal.ZERO, sut.getCurrentAccount().getBalance());
@@ -64,7 +65,7 @@ class AccountAggregateTest {
     }
 
     @Test
-    void loginWithExistingAccount() {
+    void login_withExistingAccount_willReturnTheAccount() {
         when(accountRepositoryPort.findCustomerByName("Yauri Attamimi")).thenReturn(Optional.of(registeredCustomer));
         var currentBalance = sut.login("Yauri Attamimi");
         assertEquals("Yauri Attamimi", sut.getCurrentAccount().getName());
@@ -74,13 +75,39 @@ class AccountAggregateTest {
     }
 
     @Test
-    void deposit10DollarToARegisteredAccount() {
+    void deposit_withoutLogin_shouldAskToLoginFirst() {
+        Exception exception = assertThrows(DomainException.class, () -> sut.deposit(BigDecimal.TEN));
+        assertEquals("Deposit failed! Please login first!!", exception.getMessage());
+    }
+
+    @Test
+    void deposit_10DollarToARegisteredAccount_willAddDepositAmountToTheRegisteredAccount() {
         when(accountRepositoryPort.findCustomerByName("Yauri Attamimi")).thenReturn(Optional.of(registeredCustomer));
         sut.login("Yauri Attamimi");
-        var lastBalance = sut.deposit(BigDecimal.TEN);
+        var response = sut.deposit(BigDecimal.TEN);
         assertEquals(BigDecimal.valueOf(10_000_010), registeredCustomer.getBalance());
-        assertEquals(registeredCustomer.getBalance(), lastBalance);
+        assertEquals(registeredCustomer, response.getCustomerAccount());
+        assertTrue(response.getTransferList().isEmpty());
         verify(accountRepositoryPort, atLeastOnce()).save(any(CustomerAccount.class));
+    }
+
+    @Test
+    void deposit_10DollarWhileOwed30DollarToSomeone_shouldBeAutoDebit() {
+        var sourceAccount = new CustomerAccount("Naruto");
+        var targetAccount = new CustomerAccount("Sakura");
+        when(accountRepositoryPort.findCustomerByName("Naruto")).thenReturn(Optional.of(sourceAccount));
+        var debtAccount = new DebtAccount(sourceAccount.getName(), targetAccount.getName(), BigDecimal.valueOf(30));
+        when(debtRepositoryPort.findByDebtorAccount(sourceAccount.getName())).thenReturn(Arrays.asList(debtAccount));
+        when(accountRepositoryPort.findCustomerByName(debtAccount.getCreditorAccountName())).thenReturn(Optional.of(targetAccount));
+        when(accountRepositoryPort.findCustomerByName(sourceAccount.getName())).thenReturn(Optional.of(sourceAccount));
+        sut.login(sourceAccount.getName());
+        var response = sut.deposit(BigDecimal.TEN);
+        assertEquals(sourceAccount, response.getCustomerAccount());
+        assertFalse(response.getTransferList().isEmpty());
+        verify(accountRepositoryPort, atLeastOnce()).save(sourceAccount);
+        verify(accountRepositoryPort, atLeastOnce()).save(targetAccount);
+        verify(debtRepositoryPort, never()).remove(any(DebtAccount.class));
+        verify(debtRepositoryPort, atLeastOnce()).save(any(DebtAccount.class));
     }
 
     @Test
@@ -93,14 +120,14 @@ class AccountAggregateTest {
     }
 
     @Test
-    void transferWithoutLogin() {
+    void transfer_withoutLogin_shouldAskToLoginFirst() {
         Exception exception = assertThrows(DomainException.class,
                 () -> sut.transfer("Ichigo Kurosaki", BigDecimal.valueOf(50)));
         assertEquals("Please login first!", exception.getMessage());
     }
 
     @Test
-    void transferToUnregisteredTargetAccount() {
+    void transfer_toUnregisteredTargetAccount_shouldFailWithMessage() {
         sut.login("Yauri Attamimi");
         when(accountRepositoryPort.findCustomerByName("Natsu Dragneel")).thenReturn(Optional.empty());
         Exception exception = assertThrows(DomainException.class,
@@ -109,16 +136,20 @@ class AccountAggregateTest {
     }
 
     @Test
-    void transferToRegisteredAccountWithSufficientBalance() {
+    void transfer_toRegisteredAccountWithSufficientBalance_willAddTransferAmountToTargetRegisteredAccount() {
         when(accountRepositoryPort.findCustomerByName("Yauri Attamimi")).thenReturn(Optional.of(registeredCustomer));
         sut.login("Yauri Attamimi");
         when(accountRepositoryPort.findCustomerByName("Ichigo Kurosaki"))
                 .thenReturn(Optional.of(targetedCustomerAccount));
         var transferAmount = BigDecimal.valueOf(500_000);
-        var owedAmount = sut.transfer(targetedCustomerAccount.getName(), transferAmount);
-        assertEquals(BigDecimal.ZERO, owedAmount);
+        var response = sut.transfer(targetedCustomerAccount.getName(), transferAmount);
+        assertTrue(response.getDebtAccounts().isEmpty());
         assertEquals(BigDecimal.valueOf(1_000_000), targetedCustomerAccount.getBalance());
         assertEquals(BigDecimal.valueOf(9_500_000), sut.getCurrentAccount().getBalance());
+        assertEquals(sut.getCurrentAccount(), response.getCustomerAccount());
+        assertFalse(response.getTransferList().isEmpty());
+        assertEquals(transferAmount, response.getTransferList().get(0).getTransferAmount());
+        assertTrue(response.getDebtAccounts().isEmpty());
 
         verify(accountRepositoryPort, atLeastOnce()).save(targetedCustomerAccount);
         verify(accountRepositoryPort, atLeastOnce()).save(sut.getCurrentAccount());
@@ -126,7 +157,7 @@ class AccountAggregateTest {
     }
 
     @Test
-    void transferToRegisteredAccountWithInsufficientBalance() {
+    void transfer_toRegisteredAccountWithInsufficientBalance_willCreateDebtAccount() {
         when(accountRepositoryPort.findCustomerByName("Yauri Attamimi")).thenReturn(Optional.of(registeredCustomer));
         sut.login("Yauri Attamimi");
         when(accountRepositoryPort.findCustomerByName("Ichigo Kurosaki"))
@@ -139,7 +170,7 @@ class AccountAggregateTest {
 
         verify(accountRepositoryPort, atLeastOnce()).save(targetedCustomerAccount);
         verify(accountRepositoryPort, atLeastOnce()).save(sut.getCurrentAccount());
-        verify(debtRepositoryPort, atLeastOnce()).save(any(CustomerDebt.class));
+        verify(debtRepositoryPort, atLeastOnce()).save(any(DebtAccount.class));
     }
 
     @AfterEach

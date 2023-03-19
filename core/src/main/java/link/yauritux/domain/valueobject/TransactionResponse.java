@@ -14,7 +14,7 @@ import java.util.List;
  */
 @NoArgsConstructor
 @Data
-public class DepositResponse {
+public class TransactionResponse {
 
     private CustomerAccount customerAccount;
     private List<TransferDto> transferList = new ArrayList<>();

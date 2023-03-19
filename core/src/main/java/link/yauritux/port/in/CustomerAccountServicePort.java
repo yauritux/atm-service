@@ -1,6 +1,7 @@
-package link.yauritux.port.api;
+package link.yauritux.port.in;
 
 import link.yauritux.domain.entity.CustomerAccount;
+import link.yauritux.domain.valueobject.TransactionResponse;
 
 import java.math.BigDecimal;
 
@@ -12,9 +13,9 @@ public interface CustomerAccountServicePort {
 
     BigDecimal login(final String name);
     void logout();
-    BigDecimal deposit(final BigDecimal depositAmount);
+    TransactionResponse deposit(final BigDecimal depositAmount);
 
-    BigDecimal transfer(final String targetName, BigDecimal transferAmount);
+    TransactionResponse transfer(final String targetName, BigDecimal transferAmount);
 
     CustomerAccount getCurrentAccount();
 }

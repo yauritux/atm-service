@@ -1,7 +1,7 @@
 package link.yauritux;
 
-import link.yauritux.adapter.out.InMemCustomerAccountRepository;
-import link.yauritux.adapter.out.InMemCustomerDebtRepository;
+import link.yauritux.adapter.out.inmemory.InMemCustomerAccountRepository;
+import link.yauritux.adapter.out.inmemory.InMemDebtAccountRepository;
 import link.yauritux.domain.aggregate.AccountAggregate;
 
 import java.math.BigDecimal;
@@ -16,7 +16,7 @@ public class AppRunner {
     public static void main(String[] args) {
 
         AccountAggregate accountAggregate =
-                new AccountAggregate(new InMemCustomerAccountRepository(), new InMemCustomerDebtRepository());
+                new AccountAggregate(new InMemCustomerAccountRepository(), new InMemDebtAccountRepository());
 
         Scanner input = new Scanner(System.in);
 
@@ -39,8 +39,14 @@ public class AppRunner {
 
             if (commands[0].equalsIgnoreCase("deposit")) {
                 var depositAmount = new BigDecimal(commands[1]);
-                var lastBalance = accountAggregate.deposit(depositAmount);
-                System.out.printf("Your balance is $%s\n", lastBalance);
+                var response = accountAggregate.deposit(depositAmount);
+                response.getTransferList().forEach(t -> {
+                    System.out.printf("Transferred $%s to %s\n", t.getTransferAmount(), t.getTargetAccount().getName());
+                });
+                System.out.printf("Your balance is $%s\n", response.getCustomerAccount().getBalance());
+                response.getDebtAccounts().forEach(da -> {
+                    System.out.printf("Owed $%s to %s\n", da.getAmount(), da.getCreditorAccountName());
+                });
             }
 
             if (commands[0].equalsIgnoreCase("logout")) {

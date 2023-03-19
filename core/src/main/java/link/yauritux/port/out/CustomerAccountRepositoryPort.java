@@ -1,4 +1,4 @@
-package link.yauritux.port.spi;
+package link.yauritux.port.out;
 
 import link.yauritux.domain.entity.CustomerAccount;
 

@@ -1,18 +1,25 @@
-package link.yauritux.port.spi;
+package link.yauritux.port.out;
 
 import link.yauritux.domain.entity.CustomerAccount;
 import link.yauritux.domain.entity.DebtAccount;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author yauritux@gmail.com
  * @version 1.0
  */
-public interface DebtAccountRepositoryPort {
+public interface DebtAccountRepositoryPort<ID> {
 
     void save(DebtAccount debtAccount);
-    List<DebtAccount> findByDebtorAccount(CustomerAccount account);
+
+    /**
+     * Fetch all debtor's debt account records.
+     *
+     * @param accountId
+     * @return list of DebtAccount as owed by the customer account id.
+     */
+
+    List<DebtAccount> findByDebtorAccount(ID accountId);
     void remove(DebtAccount debtAccount);
 }
