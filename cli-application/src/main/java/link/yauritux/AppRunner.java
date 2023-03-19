@@ -49,6 +49,14 @@ public class AppRunner {
                     System.err.println("Invalid transfer amount. Please provide number!");
                     System.err.println("E.g. : transfer Bob 50");
                 }
+            } else if (commands[0].equalsIgnoreCase("withdraw")) {
+                try {
+                    var withdrawAmount = commands.length == 2 ? new BigDecimal(commands[1]) : null;
+                    UserCliCommand.INSTANCE.withdraw(withdrawAmount).forEach(System.out::println);
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid withdraw amount. Please provide number!");
+                    System.err.println("E.g. : withdraw 50");
+                }
             } else if (commands[0].equalsIgnoreCase("logout")) {
                 UserCliCommand.INSTANCE.logout().forEach(System.out::println);
             } else {

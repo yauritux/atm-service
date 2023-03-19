@@ -212,6 +212,31 @@ class AccountAggregateTest {
         verify(debtRepositoryPort, atLeastOnce()).save(any(DebtAccount.class));
     }
 
+    @Test
+    void withdraw_withoutLogin_shouldFailWithMessage() {
+        Exception exception = assertThrows(DomainException.class, () -> sut.withdraw(BigDecimal.valueOf(500)));
+        assertEquals("Please login first!", exception.getMessage());
+    }
+
+    @Test
+    void withdraw_insufficientBalance_shouldFailWithMessage() {
+        when(accountRepositoryPort.findCustomerByName("Yauri Attamimi")).thenReturn(Optional.of(registeredCustomer));
+        sut.login("Yauri Attamimi");
+        Exception exception = assertThrows(DomainException.class, () -> sut.withdraw(BigDecimal.valueOf(25_000_000)));
+        assertEquals(String.format("Insufficient balance. Your current balance is $%s%n",
+                registeredCustomer.getBalance()), exception.getMessage());
+    }
+
+    @Test
+    void withdraw() {
+        when(accountRepositoryPort.findCustomerByName("Yauri Attamimi")).thenReturn(Optional.of(registeredCustomer));
+        sut.login("Yauri Attamimi");
+        var response = sut.withdraw(BigDecimal.valueOf(300_000));
+        assertEquals(registeredCustomer, response.getCustomerAccount());
+        assertEquals(BigDecimal.valueOf(9_700_000), response.getCustomerAccount().getBalance());
+        verify(accountRepositoryPort, atLeastOnce()).save(registeredCustomer);
+    }
+
     @AfterEach
     void tearDown() {
         sut = null;

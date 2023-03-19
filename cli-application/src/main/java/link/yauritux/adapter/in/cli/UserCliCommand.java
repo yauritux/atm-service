@@ -89,5 +89,22 @@ public class UserCliCommand {
         return cmdResponse;
     }
 
+    public List<String> withdraw(BigDecimal withdrawAmount) {
+        List<String> cmdResponse = new ArrayList<>();
+        if (withdrawAmount == null) {
+            cmdResponse.add("Usage: withdraw [number]");
+            cmdResponse.add("E.g. : withdraw 50");
+            return cmdResponse;
+        }
+        try {
+            var response = accountAggregate.withdraw(withdrawAmount);
+            cmdResponse.add(String.format("$%s is withdrawn from your account%n", withdrawAmount));
+            cmdResponse.add(String.format("your current balance now is $%s%n", response.getCustomerAccount().getBalance()));
+        } catch (Exception e) {
+            cmdResponse.add(e.getMessage());
+        }
+        return cmdResponse;
+    }
+
     private UserCliCommand() {}
 }

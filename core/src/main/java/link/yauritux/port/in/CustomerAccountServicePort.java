@@ -17,5 +17,7 @@ public interface CustomerAccountServicePort {
 
     TransactionResponse transfer(final String targetName, BigDecimal transferAmount);
 
+    TransactionResponse withdraw(final BigDecimal withdrawAmount);
+
     CustomerAccount getCurrentAccount();
 }

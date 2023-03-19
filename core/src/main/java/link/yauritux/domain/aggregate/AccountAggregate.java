@@ -154,6 +154,22 @@ public class AccountAggregate implements CustomerAccountServicePort {
     }
 
     @Override
+    public TransactionResponse withdraw(BigDecimal withdrawAmount) {
+        if (this.currentAccount == null) {
+            throw new DomainException("Please login first!");
+        }
+        if (withdrawAmount.compareTo(currentAccount.getBalance()) > 0) {
+            throw new DomainException(String.format(
+                    "Insufficient balance. Your current balance is $%s%n", currentAccount.getBalance()));
+        }
+        currentAccount.setBalance(currentAccount.getBalance().subtract(withdrawAmount));
+        accountRepositoryPort.save(currentAccount);
+        var response = new TransactionResponse();
+        response.setCustomerAccount(currentAccount);
+        return response;
+    }
+
+    @Override
     public CustomerAccount getCurrentAccount() {
         return this.currentAccount;
     }
