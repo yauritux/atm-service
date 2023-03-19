@@ -62,9 +62,10 @@ public class AccountAggregate implements CustomerAccountServicePort {
                     var creditorAccount =
                             accountRepositoryPort.findCustomerByName(da.getCreditorAccountName());
                     if (creditorAccount.isPresent()) {
-                        creditorAccount.get().setBalance(creditorAccount.get().getBalance().add(depositAmount));
-                        accountRepositoryPort.save(creditorAccount.get());
-                        depositResponse.addTransfer(new TransferDto(creditorAccount.get(), debtAmount.subtract(depositAmount)));
+                        var creditor = creditorAccount.get();
+                        creditor.setBalance(creditor.getBalance().add(depositAmount));
+                        accountRepositoryPort.save(creditor);
+                        depositResponse.addTransfer(new TransferDto(creditor, depositAmount));
                     }
 
                     // calculate and update the remaining debts (owed amount)
@@ -72,8 +73,6 @@ public class AccountAggregate implements CustomerAccountServicePort {
                     da.setAmount(remainedDebtAmount);
                     if (da.getAmount().compareTo(BigDecimal.ZERO) == 0) {
                         debtRepositoryPort.remove(da);
-                    } else {
-                        debtRepositoryPort.save(da);
                     }
                     break;
                 } else { // deposit amount is greater than current debt (owed) amount

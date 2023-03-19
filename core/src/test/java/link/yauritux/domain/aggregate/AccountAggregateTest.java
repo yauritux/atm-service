@@ -107,7 +107,6 @@ class AccountAggregateTest {
         verify(accountRepositoryPort, atLeastOnce()).save(sourceAccount);
         verify(accountRepositoryPort, atLeastOnce()).save(targetAccount);
         verify(debtRepositoryPort, never()).remove(any(DebtAccount.class));
-        verify(debtRepositoryPort, atLeastOnce()).save(any(DebtAccount.class));
     }
 
     @Test

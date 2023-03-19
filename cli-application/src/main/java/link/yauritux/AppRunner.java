@@ -1,8 +1,6 @@
 package link.yauritux;
 
-import link.yauritux.adapter.out.inmemory.InMemCustomerAccountRepository;
-import link.yauritux.adapter.out.inmemory.InMemDebtAccountRepository;
-import link.yauritux.domain.aggregate.AccountAggregate;
+import link.yauritux.adapter.in.cli.UserCliCommand;
 
 import java.math.BigDecimal;
 import java.util.Scanner;
@@ -14,9 +12,6 @@ import java.util.Scanner;
 public class AppRunner {
 
     public static void main(String[] args) {
-
-        AccountAggregate accountAggregate =
-                new AccountAggregate(new InMemCustomerAccountRepository(), new InMemDebtAccountRepository());
 
         Scanner input = new Scanner(System.in);
 
@@ -31,59 +26,48 @@ public class AppRunner {
             var commands = line.split(" ");
 
             if (commands[0].equalsIgnoreCase("login")) {
-                var accountName = commands[1];
-                try {
-                    var currentBalance = accountAggregate.login(commands[1]);
-                    System.out.printf("Hello, %s!\n", commands[1]);
-                    System.out.printf("Your balance is $%s\n", currentBalance);
-                } catch (Exception e) {
-                    System.err.println(e.getMessage());
-                }
-            }
-
-            if (commands[0].equalsIgnoreCase("deposit")) {
-                var depositAmount = new BigDecimal(commands[1]);
-                try {
-                    var response = accountAggregate.deposit(depositAmount);
-                    response.getTransferList().forEach(t -> {
-                        System.out.printf("Transferred $%s to %s\n", t.getTransferAmount(), t.getTargetAccount().getName());
-                    });
-                    System.out.printf("Your balance is $%s\n", response.getCustomerAccount().getBalance());
-                    response.getDebtAccounts().forEach(da -> {
-                        System.out.printf("Owed $%s to %s\n", da.getAmount(), da.getCreditorAccountName());
-                    });
-                } catch (Exception e) {
-                    System.err.println(e.getMessage());
-                }
-            }
-
-            if (commands[0].equalsIgnoreCase("transfer")) {
-                var targetAccount = commands[1];
-                var transferAmount = new BigDecimal(commands[2]);
-                try {
-                    var response = accountAggregate.transfer(targetAccount, transferAmount);
-                    response.getTransferList().forEach(t -> {
-                        if (t.getTargetAccount().getName().equalsIgnoreCase(targetAccount)) {
-                            System.out.printf("Transferred $%s to %s\n", t.getTransferAmount(), targetAccount);
-                        }
-                    });
-                    System.out.printf("your balance is $%s\n", accountAggregate.getCurrentAccount().getBalance());
-                    response.getDebtAccounts().forEach(debtAccount -> {
-                        System.out.printf("Owed $%s to %s\n", debtAccount.getAmount(), debtAccount.getCreditorAccountName());
-                    });
-                } catch (Exception e) {
-                    System.err.println(e.getMessage());
-                }
-            }
-
-            if (commands[0].equalsIgnoreCase("logout")) {
-                if (accountAggregate.getCurrentAccount() == null) {
-                    System.out.println("You've logged-out already!\n");
+                if (commands.length != 2) {
+                    System.err.println("Usage: login [name]");
+                    System.err.println("E.g. : login Alice");
                     continue;
                 }
-                var currentLoggedInName = accountAggregate.getCurrentAccount().getName();
-                accountAggregate.logout();
-                System.out.printf("Goodbye, %s!\n", currentLoggedInName);
+                UserCliCommand.INSTANCE.login(commands[1]).forEach(System.out::println);
+            } else if (commands[0].equalsIgnoreCase("deposit")) {
+                if (commands.length != 2) {
+                    System.err.println("Usage: deposit [amount]");
+                    System.err.println("E.g. : deposit 100");
+                    continue;
+                }
+                try {
+                    var depositAmount = new BigDecimal(commands[1]);
+                    UserCliCommand.INSTANCE.deposit(depositAmount).forEach(System.out::println);
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid deposit amount. Please provide number!");
+                    System.err.println("E.g. : deposit 100");
+                    continue;
+                }
+            } else if (commands[0].equalsIgnoreCase("transfer")) {
+                if (commands.length != 3) {
+                    System.err.println("Usage: transfer [target] [amount]");
+                    System.err.println("E.g. : transfer Bob 50");
+                    continue;
+                }
+                try {
+                    var transferAmount = new BigDecimal(commands[2]);
+                    UserCliCommand.INSTANCE.transfer(commands[1], transferAmount).forEach(System.out::println);
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid transfer amount. Please provide number!");
+                    System.err.println("E.g. : transfer Bob 50");
+                }
+            } else if (commands[0].equalsIgnoreCase("logout")) {
+                UserCliCommand.INSTANCE.logout().forEach(System.out::println);
+            } else {
+                System.err.println("Unrecognized command! Please use one of the following:");
+                System.err.println("login [name] - Log in as this customer or creates the customer if not exist");
+                System.err.println("deposit [amount] - Deposits this amount to the logged in customer");
+                System.err.println("withdraw [amount] - Withdraws this amount from the logged in customer");
+                System.err.println("transfer [target] [amount] - Transfers this amount from the logged in customer to the target customer");
+                System.err.println("logout - Logs out of the current customer");
             }
         }
     }
