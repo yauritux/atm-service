@@ -13,7 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -92,12 +92,12 @@ class AccountAggregateTest {
     }
 
     @Test
-    void deposit_10DollarWhileOwed30DollarToSomeone_shouldBeAutoDebit() {
+    void deposit_10DollarWhileOwed30DollarToSomeone_shouldBeAutoDebitAndUpdateRemainingDebt() {
         var sourceAccount = new CustomerAccount("Naruto");
         var targetAccount = new CustomerAccount("Sakura");
         when(accountRepositoryPort.findCustomerByName("Naruto")).thenReturn(Optional.of(sourceAccount));
         var debtAccount = new DebtAccount(sourceAccount.getName(), targetAccount.getName(), BigDecimal.valueOf(30));
-        when(debtRepositoryPort.findByDebtorAccount(sourceAccount.getName())).thenReturn(Arrays.asList(debtAccount));
+        when(debtRepositoryPort.findByDebtorAccount(sourceAccount.getName())).thenReturn(List.of(debtAccount));
         when(accountRepositoryPort.findCustomerByName(debtAccount.getCreditorAccountName())).thenReturn(Optional.of(targetAccount));
         when(accountRepositoryPort.findCustomerByName(sourceAccount.getName())).thenReturn(Optional.of(sourceAccount));
         sut.login(sourceAccount.getName());
@@ -108,6 +108,44 @@ class AccountAggregateTest {
         verify(accountRepositoryPort, atLeastOnce()).save(targetAccount);
         verify(debtRepositoryPort, never()).remove(any(DebtAccount.class));
         verify(debtRepositoryPort, atLeastOnce()).save(any(DebtAccount.class));
+    }
+
+    @Test
+    void deposit_50DollarWhileOwed50DollarToSomeone_shouldBeAutoDebitAndRemoveTheDebt() {
+        var sourceAccount = new CustomerAccount("Sakura");
+        var targetAccount = new CustomerAccount("Yauri");
+        when(accountRepositoryPort.findCustomerByName("Sakura")).thenReturn(Optional.of(sourceAccount));
+        var debtAccount = new DebtAccount(sourceAccount.getName(), targetAccount.getName(), BigDecimal.valueOf(50));
+        when(debtRepositoryPort.findByDebtorAccount(sourceAccount.getName())).thenReturn(List.of(debtAccount));
+        when(accountRepositoryPort.findCustomerByName(debtAccount.getCreditorAccountName())).thenReturn(Optional.of(targetAccount));
+        when(accountRepositoryPort.findCustomerByName(sourceAccount.getName())).thenReturn(Optional.of(sourceAccount));
+        sut.login(sourceAccount.getName());
+        var response = sut.deposit(BigDecimal.valueOf(50));
+        assertEquals(sourceAccount, response.getCustomerAccount());
+        assertFalse(response.getTransferList().isEmpty());
+        verify(accountRepositoryPort, atLeastOnce()).save(sourceAccount);
+        verify(accountRepositoryPort, atLeastOnce()).save(targetAccount);
+        verify(debtRepositoryPort, atLeastOnce()).remove(any(DebtAccount.class));
+        verify(debtRepositoryPort, never()).save(any(DebtAccount.class));
+    }
+
+    @Test
+    void deposit_50DollarWhileOwed20DollarToSomeone_shouldBeAutoDebitAndRemoveTheDebt() {
+        var sourceAccount = new CustomerAccount("Kenpachi");
+        var targetAccount = new CustomerAccount("Yauri");
+        when(accountRepositoryPort.findCustomerByName("Kenpachi")).thenReturn(Optional.of(sourceAccount));
+        var debtAccount = new DebtAccount(sourceAccount.getName(), targetAccount.getName(), BigDecimal.valueOf(20));
+        when(debtRepositoryPort.findByDebtorAccount(sourceAccount.getName())).thenReturn(List.of(debtAccount));
+        when(accountRepositoryPort.findCustomerByName(debtAccount.getCreditorAccountName())).thenReturn(Optional.of(targetAccount));
+        when(accountRepositoryPort.findCustomerByName(sourceAccount.getName())).thenReturn(Optional.of(sourceAccount));
+        sut.login(sourceAccount.getName());
+        var response = sut.deposit(BigDecimal.valueOf(50));
+        assertEquals(sourceAccount, response.getCustomerAccount());
+        assertFalse(response.getTransferList().isEmpty());
+        verify(accountRepositoryPort, atLeastOnce()).save(sourceAccount);
+        verify(accountRepositoryPort, atLeastOnce()).save(targetAccount);
+        verify(debtRepositoryPort, atLeastOnce()).remove(any(DebtAccount.class));
+        verify(debtRepositoryPort, never()).save(any(DebtAccount.class));
     }
 
     @Test
@@ -153,7 +191,7 @@ class AccountAggregateTest {
 
         verify(accountRepositoryPort, atLeastOnce()).save(targetedCustomerAccount);
         verify(accountRepositoryPort, atLeastOnce()).save(sut.getCurrentAccount());
-        verify(debtRepositoryPort, never()).save(any());
+        verify(debtRepositoryPort, never()).save(any(DebtAccount.class));
     }
 
     @Test
@@ -163,10 +201,12 @@ class AccountAggregateTest {
         when(accountRepositoryPort.findCustomerByName("Ichigo Kurosaki"))
                 .thenReturn(Optional.of(targetedCustomerAccount));
         var transferAmount = BigDecimal.valueOf(15_000_000);
-        var owedAmount = sut.transfer(targetedCustomerAccount.getName(), transferAmount);
-        assertEquals(BigDecimal.valueOf(5_000_000), owedAmount);
+        var response = sut.transfer(targetedCustomerAccount.getName(), transferAmount);
+        assertFalse(response.getDebtAccounts().isEmpty());
+        assertEquals(BigDecimal.valueOf(5_000_000), response.getDebtAccounts().get(0).getAmount());
         assertEquals(BigDecimal.valueOf(15_500_000), targetedCustomerAccount.getBalance());
         assertEquals(BigDecimal.ZERO, sut.getCurrentAccount().getBalance());
+        assertEquals(sut.getCurrentAccount(), response.getCustomerAccount());
 
         verify(accountRepositoryPort, atLeastOnce()).save(targetedCustomerAccount);
         verify(accountRepositoryPort, atLeastOnce()).save(sut.getCurrentAccount());

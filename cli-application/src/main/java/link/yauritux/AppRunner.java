@@ -32,21 +32,48 @@ public class AppRunner {
 
             if (commands[0].equalsIgnoreCase("login")) {
                 var accountName = commands[1];
-                var currentBalance = accountAggregate.login(commands[1]);
-                System.out.printf("Hello, %s!\n", commands[1]);
-                System.out.printf("Your balance is $%s\n", currentBalance);
+                try {
+                    var currentBalance = accountAggregate.login(commands[1]);
+                    System.out.printf("Hello, %s!\n", commands[1]);
+                    System.out.printf("Your balance is $%s\n", currentBalance);
+                } catch (Exception e) {
+                    System.err.println(e.getMessage());
+                }
             }
 
             if (commands[0].equalsIgnoreCase("deposit")) {
                 var depositAmount = new BigDecimal(commands[1]);
-                var response = accountAggregate.deposit(depositAmount);
-                response.getTransferList().forEach(t -> {
-                    System.out.printf("Transferred $%s to %s\n", t.getTransferAmount(), t.getTargetAccount().getName());
-                });
-                System.out.printf("Your balance is $%s\n", response.getCustomerAccount().getBalance());
-                response.getDebtAccounts().forEach(da -> {
-                    System.out.printf("Owed $%s to %s\n", da.getAmount(), da.getCreditorAccountName());
-                });
+                try {
+                    var response = accountAggregate.deposit(depositAmount);
+                    response.getTransferList().forEach(t -> {
+                        System.out.printf("Transferred $%s to %s\n", t.getTransferAmount(), t.getTargetAccount().getName());
+                    });
+                    System.out.printf("Your balance is $%s\n", response.getCustomerAccount().getBalance());
+                    response.getDebtAccounts().forEach(da -> {
+                        System.out.printf("Owed $%s to %s\n", da.getAmount(), da.getCreditorAccountName());
+                    });
+                } catch (Exception e) {
+                    System.err.println(e.getMessage());
+                }
+            }
+
+            if (commands[0].equalsIgnoreCase("transfer")) {
+                var targetAccount = commands[1];
+                var transferAmount = new BigDecimal(commands[2]);
+                try {
+                    var response = accountAggregate.transfer(targetAccount, transferAmount);
+                    response.getTransferList().forEach(t -> {
+                        if (t.getTargetAccount().getName().equalsIgnoreCase(targetAccount)) {
+                            System.out.printf("Transferred $%s to %s\n", t.getTransferAmount(), targetAccount);
+                        }
+                    });
+                    System.out.printf("your balance is $%s\n", accountAggregate.getCurrentAccount().getBalance());
+                    response.getDebtAccounts().forEach(debtAccount -> {
+                        System.out.printf("Owed $%s to %s\n", debtAccount.getAmount(), debtAccount.getCreditorAccountName());
+                    });
+                } catch (Exception e) {
+                    System.err.println(e.getMessage());
+                }
             }
 
             if (commands[0].equalsIgnoreCase("logout")) {
@@ -57,17 +84,6 @@ public class AppRunner {
                 var currentLoggedInName = accountAggregate.getCurrentAccount().getName();
                 accountAggregate.logout();
                 System.out.printf("Goodbye, %s!\n", currentLoggedInName);
-            }
-
-            if (commands[0].equalsIgnoreCase("transfer")) {
-                var targetAccount = commands[1];
-                var transferAmount = new BigDecimal(commands[2]);
-                var owedAccount = accountAggregate.transfer(targetAccount, transferAmount);
-                System.out.printf("Transferred $%s to %s\n", transferAmount, targetAccount);
-                System.out.printf("your balance is $%s\n", accountAggregate.getCurrentAccount().getBalance());
-                if (owedAccount.compareTo(BigDecimal.ZERO) > 0) {
-                    System.out.printf("Owed $%s to %s\n", owedAccount, targetAccount);
-                }
             }
         }
     }

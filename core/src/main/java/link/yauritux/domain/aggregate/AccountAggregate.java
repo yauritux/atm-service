@@ -82,6 +82,16 @@ public class AccountAggregate implements CustomerAccountServicePort {
                     accountRepositoryPort.save(this.currentAccount);
                     da.setAmount(BigDecimal.ZERO);
                     debtRepositoryPort.remove(da);
+
+                    // update deposit response
+                    var creditorAccount = accountRepositoryPort.findCustomerByName(da.getCreditorAccountName());
+                    if (creditorAccount.isPresent()) {
+                        var transferAmount = debtAmount;
+                        var destinationAccount = creditorAccount.get();
+                        destinationAccount.setBalance(destinationAccount.getBalance().add(transferAmount));
+                        accountRepositoryPort.save(destinationAccount);
+                        depositResponse.setTransferList(List.of(new TransferDto(destinationAccount, transferAmount)));
+                    }
                 }
             }
         }

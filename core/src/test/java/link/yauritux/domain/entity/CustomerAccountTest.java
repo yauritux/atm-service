@@ -36,4 +36,27 @@ class CustomerAccountTest {
         assertEquals("Yauri Attamimi", newAccount.getName());
         assertNotEquals(BigDecimal.ZERO, newAccount.getBalance());
     }
+
+    @Test
+    void twoIdenticalCustomersShouldReturnEqualsTrue() {
+        var firstAccount = new CustomerAccount("Yauri Attamimi", BigDecimal.ZERO);
+        var secondAccount = new CustomerAccount("Yauri Attamimi");
+        assertEquals(firstAccount, secondAccount);
+    }
+
+    @Test
+    void twoIdenticalCustomersShouldHaveSameHashCode() {
+        var firstAccount = new CustomerAccount("Yauri Attamimi");
+        var secondAccount = new CustomerAccount("Yauri Attamimi");
+        assertEquals(firstAccount.hashCode(), secondAccount.hashCode());
+    }
+
+    @Test
+    void twoCustomerAccountsWithDifferentBalanceYetSameNameShouldHaveSameHashCode() {
+        var firstAccount = new CustomerAccount("Yauri Attamimi");
+        firstAccount.setBalance(BigDecimal.ZERO);
+        var secondAccount = new CustomerAccount("Yauri Attamimi", BigDecimal.TEN);
+        assertEquals(firstAccount.hashCode(), secondAccount.hashCode());
+        assertNotEquals(firstAccount.getBalance(), secondAccount.getBalance());
+    }
 }

@@ -23,8 +23,4 @@ public class TransactionResponse {
     public void addTransfer(TransferDto dto) {
         this.transferList.add(dto);
     }
-
-    public void addDebtAccounts(DebtAccount da) {
-        this.debtAccounts.add(da);
-    }
 }
