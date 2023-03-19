@@ -1,4 +1,4 @@
-package link.yauritux.adapter.out;
+package link.yauritux.adapter.out.inmemory;
 
 import link.yauritux.domain.entity.CustomerAccount;
 import link.yauritux.port.spi.CustomerAccountRepositoryPort;
