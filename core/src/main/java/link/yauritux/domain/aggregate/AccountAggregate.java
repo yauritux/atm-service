@@ -133,7 +133,7 @@ public class AccountAggregate implements CustomerAccountServicePort {
             return transferredResponse;
         }
 
-        // balance is not sufficient (i.e., current balance is less than transfer amount)
+        // balance is not sufficient (i.e., current balance is less than the transfer amount)
         var realTransferAmount = currentAccount.getBalance();
         var owedAmount = transferAmount.subtract(currentAccount.getBalance());
         currentAccount.setBalance(BigDecimal.ZERO);
@@ -147,7 +147,7 @@ public class AccountAggregate implements CustomerAccountServicePort {
         transferredResponse.setTransferList(List.of(new TransferDto(destinationAccount, realTransferAmount)));
         transferredResponse.setDebtAccounts(List.of(newDebtAccount));
 
-        destinationAccount.setBalance(destinationAccount.getBalance().add(transferAmount));
+        destinationAccount.setBalance(destinationAccount.getBalance().add(realTransferAmount));
         accountRepositoryPort.save(destinationAccount);
         debtRepositoryPort.save(newDebtAccount);
         return transferredResponse;

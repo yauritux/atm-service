@@ -195,6 +195,7 @@ class AccountAggregateTest {
 
     @Test
     void transfer_toRegisteredAccountWithInsufficientBalance_willCreateDebtAccount() {
+        var initialSourceBalance = registeredCustomer.getBalance();
         when(accountRepositoryPort.findCustomerByName("Yauri Attamimi")).thenReturn(Optional.of(registeredCustomer));
         sut.login("Yauri Attamimi");
         when(accountRepositoryPort.findCustomerByName("Ichigo Kurosaki"))
@@ -203,9 +204,10 @@ class AccountAggregateTest {
         var response = sut.transfer(targetedCustomerAccount.getName(), transferAmount);
         assertFalse(response.getDebtAccounts().isEmpty());
         assertEquals(BigDecimal.valueOf(5_000_000), response.getDebtAccounts().get(0).getAmount());
-        assertEquals(BigDecimal.valueOf(15_500_000), targetedCustomerAccount.getBalance());
+        assertEquals(BigDecimal.valueOf(10_500_000), targetedCustomerAccount.getBalance());
         assertEquals(BigDecimal.ZERO, sut.getCurrentAccount().getBalance());
         assertEquals(sut.getCurrentAccount(), response.getCustomerAccount());
+        assertEquals(initialSourceBalance, response.getTransferList().get(0).getTransferAmount());
 
         verify(accountRepositoryPort, atLeastOnce()).save(targetedCustomerAccount);
         verify(accountRepositoryPort, atLeastOnce()).save(sut.getCurrentAccount());
